@@ -6,6 +6,9 @@ import colored_logger
 import sqlalchemy
 import requests
 import json
+import sys
+import re
+import datetime
 from pymongo import Connection
 
 from lxml import html
@@ -18,11 +21,11 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 base_url = u"http://www.cosme.net/product/product_id/"
 log = colored_logger.get_logger(u"cosme.py")
 Base = declarative_base()
-connect = Connection('localhost', 27017)
-db = connect.test
-connect.drop_database(db)
-db = connect.test
-product = db.product
+connect = Connection('157.7.143.101',27017)
+username = 'miup'
+password = 'miupmiup222'
+connect['cosme'].authenticate( username, password)
+db = connect.cosme
 
 class Cosme(Base):
     __tablename__ = u"cosmes"
@@ -38,38 +41,48 @@ class Cosme(Base):
     category = Column(String(255), index=True)
     date = Column(String(255), index=True)
 
-    def __init__(self, url, id):
+    def __init__(self, url):
         self.url = url
-        self.id = id
         self.reviews = []
 
     @classmethod
-    def from_item_pages(cls, keyword):
+    def from_item_pages(cls, url):
 
-        top_url = u"{0}{1}/top".format(base_url, keyword)
-        a = Cosme(top_url, keyword)
-        #source = requests.get(top_url).content
-        #source = source.decode('utf-8')
+        top_url = url
+        print(url)
+        a = Cosme(top_url)
         source = common.get_source(top_url)
         tree = html.fromstring(source)
-        #print(source)
-        #print(top_url)
-        a.id = keyword
+        a.id = re.split(u'/',url)[5]
         a.title = common.get_text_content(tree.xpath(u"//strong[@itemprop='title']"))
         a.manufacturer = common.get_text_content(tree.xpath(u"//dl[@class='maker clearfix']/dd/a"))
-        a.sell_page = tree.xpath(u"//dl[@class='official-site clearfix']/dd/a")[0].attrib['href']
-        a.rating = common.get_text_content(tree.xpath(u"//*/div[@class='info-desc']/p[@class='average avr-5_5']"))
+        temp = tree.xpath(u"//dl[@class='official-site clearfix']/dd/a")
+        if len(temp)>0 : a.sell_page = temp[0].attrib['href']
+        else : a.sell_page = u''
+        a.rating = common.get_text_content(tree.xpath(u"//*/div[@class='info-desc']/p[@itemprop='ratingValue']"))
+        if a.rating is None: return
+        if a.rating == u'0': return
+        print(u'Get Reviews')
         a.capacity = common.get_text_content(tree.xpath(u"//ul[@class='info-rating']/li[@class='clearfix']/p[@class='info-desc']"))
-        a.price = a.capacity.encode('utf_8').split('・')[1]
-        a.capacity = a.capacity.encode('utf_8').split('・')[0]
+        a.capacity = re.sub(u'ｍl',u'ml',a.capacity)
+        if u'・' in a.capacity :
+             a.price = a.capacity.encode('utf_8').split('・')[1]
+             a.capacity = a.capacity.encode('utf_8').split('・')[0]
+        elif u'ml' in a.capacity :
+            a.price = u'0円'
+        elif u'円' in a.capacity :
+            a.price = a.capacity
+            a.capacity = u'0ml'
         a.date = tree.xpath(u"//*/ul[@class='info-rating']/li[@class='clearfix']/p[@class='info-desc']")[1].text_content()
+        a.date = re.sub(u'NEW','',a.date)
+        a.date = re.split(u' ',a.date)[0]
+        a.date  = (int(re.split(u'/',a.date)[0])-2000) * 365 + int(re.split(u'/',a.date)[1]) * 30 + int(re.split(u'/',a.date)[2])
         a.category = tree.xpath(u"//*/dl[@class='item-category clearfix']/dd/span/a")[2].text_content()
 
-        log.warning(u'searching "%s"', keyword)
         page_number = 0
         urls = []
         while True:
-            url = u"{0}{1}/reviews/p/{2}".format(base_url, keyword, page_number)
+            url = u"{0}{1}/reviews/p/{2}".format(base_url, a.id, page_number)
             source = common.get_source(url)
             new_urls = parse_search_page(url, source)
             urls = urls + new_urls
@@ -77,12 +90,9 @@ class Cosme(Base):
             print(page_number)
             if len(new_urls) < 1:
                 break
-        #review_page_urls = [s.replace(u"anime", u"anime_review") for s in urls]
-        #log.warning(u'the search results:')
-        #log.info(review_page_urls)
 
         if len(urls) == 0:
-            return a
+            return
         for url in urls:
             try:
                 review_source = common.get_source(url)
@@ -93,7 +103,22 @@ class Cosme(Base):
                 if e.__str__() != u"not_found":
                     log.debug(u"{0}, url = {1}".format(e, url))
                 break
-        return a
+        add_to_db(a)
+
+def get_urls(id):
+    d = datetime.datetime.today()
+    urls = []
+    for sort in range(0,1000):
+        top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/srt/3".format(id, sort)
+        source = common.get_source(top_url)
+        tree = html.fromstring(source)
+        item_date = re.sub(u'発売日：',u'',tree.xpath(u"//span[@class='sell']")[0].text_content())
+        item_date  = (int(re.split(u'/',item_date)[0])-2000) * 365 + int(re.split(u'/',item_date)[1]) * 30 + int(re.split(u'/',item_date)[2])
+        if item_date < (d.year - 2000 - 1) * 365 + d.month * 30 + d.day: break
+        pages = tree.xpath(u"//div[@class='inner']/p[@class='item-head']/span[@class='item']/a")
+        for page in pages:
+            urls.append(page.attrib['href'])
+    return(urls)
 
 def parse_search_page(url, source):
     log.info(u'parsing %s', url)
@@ -105,25 +130,26 @@ def parse_search_page(url, source):
     return tmp_urls
 
 def add_to_db(cosme):
+    db.cosme.remove({u'id' : cosme.id})
     post=json.dumps({'id': cosme.id,
           'title': cosme.title.encode('utf_8'),
           'manufacturer': cosme.manufacturer.encode('utf_8'),
           'sell_page': cosme.sell_page.encode('utf_8'),
-          'rating': cosme.rating.encode('utf_8'),
+          'rating': cosme.rating,
           'capacity': cosme.capacity.encode('utf_8'),
           'price': cosme.price,
           'url': cosme.url.encode('utf_8'),
           'category': cosme.category.encode('utf_8'),
-          'date': cosme.date.encode('utf_8')}, sort_keys=False)
+          'date': cosme.date,
+          'review': cosme.reviews}, sort_keys=False)
     post = json.loads(post)
-    db.product.insert(post)
-    print(db.product.find_one())
-    print(db.product.find_one(({"rating": "5.5"})))
+    db.cosme.insert(post)
 
 if __name__ == u"__main__":
-    import sys
-    start = int(sys.argv[1])
-    end = int(sys.argv[2])
-    for keyword in range(start,end):
-       add_to_db(Cosme.from_item_pages(keyword))
+    ids = {u'1003',u'1071'}
+    urls = []
+    for id in ids:
+        urls = urls + get_urls(id)
+    for url in urls:
+        Cosme.from_item_pages(url)
     connect.disconnect()
