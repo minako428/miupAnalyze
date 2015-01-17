@@ -24,7 +24,7 @@ Base = declarative_base()
 connect = Connection('157.7.143.101',27017)
 username = 'miup'
 password = 'miupmiup222'
-connect['cosme'].authenticate( username, password)
+connect['cosme'].authenticate(username, password)
 db = connect.cosme
 
 class Cosme(Base):
