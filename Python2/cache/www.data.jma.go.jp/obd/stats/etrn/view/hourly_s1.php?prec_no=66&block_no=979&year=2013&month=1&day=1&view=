@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>æ°è±¡åºï½éå»ã®æ°è±¡ãã¼ã¿æ¤ç´¢</title>
+<meta name="Author" content="æ°è±¡åº Japan Meteorological Agency" />
+<meta name="keywords" content="æ°è±¡åº Japan Meteorological Agency" />
+<meta name="description" content="æ°è±¡åºï½éå»ã®æ°è±¡ãã¼ã¿æ¤ç´¢" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-Script-Type" content="text/javascript" />
+<link rel="stylesheet" type="text/css" href="../../../../com/css/define.css" media="all" />
+<link rel="stylesheet" type="text/css" href="../../css/default.css" media="all" />
+<link rel="stylesheet" type="text/css" href="../../css/print.css" media="print" />
+<script language="JavaScript" type="text/JavaScript" src="../js/jquery.js"></script>
+<script language="JavaScript" type="text/JavaScript" src="../js/jquery.tablefix.js"></script>
+   <style type="text/css" media="all"><!-- @import url(../../../../com/default.css); --></style>
+<link rel="stylesheet" type="text/css" href="../../css/kako.css" media="all" />
+</head>
+
+<body>
+<noscript><div>ãã¹ã¦ã®æ©è½ããå©ç¨ããã ãã«ã¯Javascriptãæå¹ã«ãã¦ãã ããã</div></noscript>
+<!--header start -->
+<div id="header_area">
+  <div id="nheader">
+  <div id="logo"><a href="http://www.jma.go.jp/jma/index.html"><img src="http://www.jma.go.jp/jma/com/images/logo.gif" alt="æ°è±¡åº" width="120" height="67" /></a></div>
+
+  <div id="header_right">
+  <div id="header_link">
+  <ul>
+  <li id="toMain"><a href="#main">æ¬æã¸</a></li>
+   <li xml:lang="en" lang="en"><a href="http://www.jma.go.jp/jma/indexe.html">ENGLISH</a></li>
+  <li><a href="http://www.jma.go.jp/jma/kishou/info/goiken.html">ãæè¦ï½¥ãææ³</a></li>
+  <li id="siteMap"><a href="http://www.jma.go.jp/jma/kishou/sitemap.html">ãµã¤ãããã</a></li>
+  </ul>
+  </div>
+  <!-- search -->
+  <div id="yjsearch" class="watermark">
+  <p>ã­ã¼ã¯ã¼ããå¥åãæ¤ç´¢ãã¿ã³ãæ¼ä¸ãã ããã</p>
+  <form action="http://www.jma.go.jp/jma/menu/search.html" method="get" id="srch">
+  <input type="search" results="5" name="p" id="srchInput" />
+  <input type="image" src="http://www.jma.go.jp/jma/com/images/btn_search.gif" alt="æ¤ç´¢" id="srchBtn" onclick="document.getElementById('srchInput').focus();" />
+  <input type="hidden" id="fr" name="fr" value="cse" />
+  <input type="hidden" id="ei" name="ei" value="utf-8" />
+  <input type="hidden" id="csid" name="csid" value="pD.LqPJKNL6pX5S8V0Zj684fKOuX.849vg9h" />
+  <input type="hidden" name="vs" value="www.jma.go.jp" id="yjInsite" />
+  </form>
+  <img src="http://custom.search.yahoo.co.jp/images/window/pD.LqPJKNL6pX5S8V0Zj684fKOuX.849vg9h.gif" alt="" /> </div>
+  <script type="text/javascript">
+   (function() {
+     var sb = document.getElementById('yjsearch');
+     if (sb && sb.className == 'watermark') {
+       var si = document.getElementById('srchInput');
+       var f = function() { si.className = 'nomark'; };
+       var b = function() {
+	 if (si.value == '') {
+	   si.className = '';
+	 }
+       };
+       si.onfocus = f;
+       si.onblur = b;
+       if (!/[&?]p=[^&]/.test(location.search)) {
+	 b();
+       } else {
+	 f();
+       }
+     }
+   })();
+</script>
+<!-- search -->
+</div>
+<ul id="gnavi">
+  <li><a href="http://www.jma.go.jp/">ãã¼ã </a></li>
+  <li><a href="http://www.jma.go.jp/jma/menu/menuflash.html">é²ç½æå ±</a></li>
+  <li><a href="http://www.jma.go.jp/jma/menu/menureport.html" class="on">åç¨®ãã¼ã¿ã»è³æ</a></li>
+  <li><a href="http://www.jma.go.jp/jma/menu/menuknowledge.html">ç¥è­ã»è§£èª¬</a></li>
+  <li><a href="http://www.jma.go.jp/jma/menu/menuabout.html">æ°è±¡åºã«ã¤ãã¦</a></li>
+  <li><a href="http://www.jma.go.jp/jma/menu/menulinks.html">æ¡åã»ç³è«</a></li>
+  </ul>
+  </div>
+</div>
+<!--header end -->
+
+<div id="contents_area2">
+  <div id="ncontents2">
+<!-- pankuzu menu -->
+  <ul class="breadcrumb2"><div class="print">
+   <li><a href="http://www.jma.go.jp/">ãã¼ã </a>&nbsp;&gt;&nbsp;</li>
+   <li><a href="http://www.jma.go.jp/jma/menu/menureport.html">åç¨®ãã¼ã¿ã»è³æ</a>&nbsp;&gt;&nbsp;</li>
+  <li><a href="../index.php?prec_no=66&block_no=979&year=2013&month=1&day=1&view=">éå»ã®æ°è±¡ãã¼ã¿æ¤ç´¢</a>&nbsp;&gt;&nbsp;</li>  <li>ï¼æéãã¨ã®å¤</li>
+  </div></ul>
+   <!-- //pankuzu menu -->
+
+<div id="main">
+<!-- contents -->
+<h1 class="print">ï¼æéãã¨ã®å¤</h1>
+
+<br>ãã¼ã¸ãè¡¨ç¤ºãããã¨ãåºæ¥ã¾ããã§ããã<br>ãã©ã¦ã¶ã®ãæ»ãããã¿ã³ãã¯ãªãã¯ãã¦ãã ããã<br></div></div></div><div id="footer_area"><div id="nfooter"><p>æ°è±¡åºï¼ã100-8122æ±äº¬é½åä»£ç°åºå¤§æçº1-3-4  ä»£è¡¨é»è©±ï¼03-3212-8341</p><ul><li><a href="http://www.jma.go.jp/jma/kishou/info/coment.html">æ°è±¡åºãã¼ã ãã¼ã¸ã«ã¤ãã¦</a></li></ul></div></div></body></html>

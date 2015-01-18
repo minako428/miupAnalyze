@@ -131,17 +131,17 @@ def parse_search_page(url, source):
 
 def add_to_db(cosme):
     db.cosme.remove({u'id' : cosme.id})
-    post=json.dumps({'id': cosme.id,
-          'title': cosme.title.encode('utf_8'),
-          'manufacturer': cosme.manufacturer.encode('utf_8'),
-          'sell_page': cosme.sell_page.encode('utf_8'),
-          'rating': cosme.rating,
-          'capacity': cosme.capacity.encode('utf_8'),
-          'price': cosme.price,
-          'url': cosme.url.encode('utf_8'),
-          'category': cosme.category.encode('utf_8'),
-          'date': cosme.date,
-          'review': cosme.reviews}, sort_keys=False)
+    post=json.dumps({u'id': cosme.id,
+          u'title': cosme.title.encode('utf_8'),
+          u'manufacturer': cosme.manufacturer.encode('utf_8'),
+          u'sell_page': cosme.sell_page.encode('utf_8'),
+          u'rating': cosme.rating,
+          u'capacity': cosme.capacity.encode('utf_8'),
+          u'price': cosme.price,
+          u'url': cosme.url.encode('utf_8'),
+          u'category': cosme.category.encode('utf_8'),
+          u'date': cosme.date,
+          u'review': cosme.reviews}, sort_keys=False)
     post = json.loads(post)
     db.cosme.insert(post)
 

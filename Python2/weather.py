@@ -3,6 +3,7 @@ import common
 import colored_logger
 import json
 import re
+import sys
 import datetime
 from pymongo import Connection
 from lxml import html
@@ -24,30 +25,30 @@ class Weather(Base):
     prec_id = Column(Integer, primary_key=True)
     block_id = Column(Integer, primary_key=True)
     place_name = Column(String(255), index=True)
-    date = datetime()
+    date = Column(Integer, primary_key=True)
     hour = Column(Integer, primary_key=True)
-    hPa_rand = Column(float, primary_key=True)
-    hPa_sea = Column(float, primary_key=True)
-    rain = Column(float, primary_key=True)
-    temperature = Column(float, primary_key=True)
-    dew_point = Column(float, primary_key=True)
-    vapor_pressure = Column(float, primary_key=True)
-    humidity = Column(float, primary_key=True)
-    wind_velocity = Column(float, primary_key=True)
+    hPa_rand = float()
+    hPa_sea = float()
+    rain = float()
+    temperature = float()
+    dew_point = float()
+    vapor_pressure = float()
+    humidity = float()
+    wind_velocity = float()
     wind_direction = Column(String(255), index=True)
-    HoS = Column(float, primary_key=True)
-    solar_irradiance = Column(float, primary_key=True)
-    snowfall = Column(float, primary_key=True)
-    snow = Column(float, primary_key=True)
+    HoS = float()
+    solar_irradiance = float()
+    snowfall = float()
+    snow = float()
     weather = Column(String(255), index=True)
-    DoC = Column(float, primary_key=True)
-    See = Column(float, primary_key=True)
+    DoC = float()
+    See = float()
 
     def __init__(self, url):
         self.url = url
 
     @classmethod
-    def get_weather(url, prec, block):
+    def get_weather(cls, url, prec, block, date):
         print(url)
         source = common.get_source(url)
         tree = html.fromstring(source)
@@ -94,39 +95,68 @@ class Weather(Base):
 def add_to_db(weather):
     db.weather.remove({u'hour' : weather.hour},{u'block_id' : weather.prec_id},
                       {u'place_name' : weather.place_name},{u'date' : weather.date})
-    post=json.dumps({'prec_id' : weather.prec_id,
-        'block_id' : weather.block_id,
-        'place_name' : weather.place_name.encode('utf8'),
-        'date' : weather.date,
-        'hour' : weather.hour,
-        'hPa_rand' : weather.hPa_rand,
-        'hPa_sea' : weather.hPa_sea,
-        'rain' : weather.rain,
-        'temperature' : weather.temperature,
-        'dew_point' : weather.dew_point,
-        'vapor_pressure' : weather.vapor_pressure,
-        'humidity' : weather.humidity,
-        'wind_velocity' : weather.wind_velocity,
-        'wind_direction' : weather.wind_direction,
-        'HoS' : weather.HoS,
-        'solar_irradiance' : weather.solar_irradiance,
-        'snowfall' : weather.snowfall,
-        'snow' : weather.snow,
-        'weather' : weather.weather.enconde('utf8'),
-        'DoC' : weather.DoC,
-        'See' : weather.See}, sort_keys=False)
+    post=json.dumps({u'prec_id' : weather.prec_id,
+        u'block_id' : weather.block_id,
+        u'place_name' : weather.place_name.encode('utf8'),
+        u'date' : weather.date,
+        u'hour' : weather.hour,
+        u'hPa_rand' : weather.hPa_rand,
+        u'hPa_sea' : weather.hPa_sea,
+        u'rain' : weather.rain,
+        u'temperature' : weather.temperature,
+        u'dew_point' : weather.dew_point,
+        u'vapor_pressure' : weather.vapor_pressure,
+        u'humidity' : weather.humidity,
+        u'wind_velocity' : weather.wind_velocity,
+        u'wind_direction' : weather.wind_direction,
+        u'HoS' : weather.HoS,
+        u'solar_irradiance' : weather.solar_irradiance,
+        u'snowfall' : weather.snowfall,
+        u'snow' : weather.snow,
+        u'weather' : weather.weather.enconde('utf8'),
+        u'DoC' : weather.DoC,
+        u'See' : weather.See}, sort_keys=False)
     post = json.loads(post)
     db.weather.insert(post)
 
-if __name__ == "__main__":
-    start = datetime.date(2014,1,1)
-    end = datetime.date.today()
+def add_to_db(prec, block):
+    db.weather_place.remove({u'prec_id' : prec, u'block_id' : block})
+    post=json.dumps({u'prec_id' : prec, u'block_id' : block}, sort_keys=False)
+    post = json.loads(post)
+    db.weather_place.insert(post)
+
+def get_prec_block():
     for prec in range(1,100):
         for block in range(1,2000):
+            date = datetime.date(2013,1,1)
+            if block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            source = common.get_source(url)
+            if len(source) < 6500 : continue
+            add_to_db(prec, block)
+        for block in range(47000,48000):
             date = start
-            while date != end:
-                url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
-                source = common.get_source(url)
-                if u'ページを表示することが出来ませんでした' in source : continue
-                Weather.get_weather(url, prec, block, date)
+            url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            source = common.get_source(url)
+            if len(source) < 6500 : continue
+            add_to_db(prec, block)
+    connect.disconnect()
+
+if __name__ == "__main__":
+    start = datetime.date(2013,1,1)
+    end = datetime.date.today()
+    if True :
+        get_prec_block()
+        sys.exit()
+    for pair in db.weather_place.find():
+        prec = pair['prec']
+        block = pair['block']
+        date = start
+        while date != end:
+            if block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            elif block > 40000 : url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            source = common.get_source(url)
+            if len(source) < 6500 : continue
+            Weather.get_weather(url, prec, block, date)
     connect.disconnect()
