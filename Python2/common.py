@@ -18,6 +18,10 @@ def get_archive_path_from_url(url):
 
 
 def get_source(url):
+    html = requests.get(url)
+    return html.text
+
+def get_source_cache(url):
     archive_path = get_archive_path_from_url(url)
     if not os.path.exists(archive_path):
         # download from the web and save the text
