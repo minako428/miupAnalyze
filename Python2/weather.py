@@ -126,10 +126,15 @@ def add_to_db(prec, block):
     db.weather_place.insert(post)
 
 def get_prec_block():
-    for prec in range(1,100):
+    for prec in range(11,100):
+        top_url=u'http://www.data.jma.go.jp/obd/stats/etrn/select/prefecture.php?prec_no={0}&block_no=&year=2014&month=&day=1&view='.format(prec)
+        source = common.get_source(top_url)
+        if len(source) < 6500 : continue
         for block in range(1,2000):
             date = datetime.date(2013,1,1)
-            if block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            if block < 10 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=000{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            elif block < 100 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=00{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            elif block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             source = common.get_source(url)
             if len(source) < 6500 : continue
@@ -145,7 +150,7 @@ def get_prec_block():
 if __name__ == "__main__":
     start = datetime.date(2013,1,1)
     end = datetime.date.today()
-    if True :
+    if False :
         get_prec_block()
         sys.exit()
     for pair in db.weather_place.find():
@@ -153,7 +158,9 @@ if __name__ == "__main__":
         block = pair['block']
         date = start
         while date != end:
-            if block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            if block < 10 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=000{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            elif block < 100 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=00{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
+            elif block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             elif block > 40000 : url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             source = common.get_source(url)
