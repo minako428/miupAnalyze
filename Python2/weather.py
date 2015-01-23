@@ -5,6 +5,7 @@ import json
 import re
 import sys
 import datetime
+import array
 from pymongo import Connection
 from lxml import html
 from sqlalchemy.ext.declarative import declarative_base
@@ -40,7 +41,7 @@ class Weather(Base):
     solar_irradiance = float()
     snowfall = float()
     snow = float()
-    weather = Column(String(255), index=True)
+    weather = u'Unknown'
     DoC = float()
     See = float()
 
@@ -48,53 +49,55 @@ class Weather(Base):
         self.url = url
 
     @classmethod
-    def get_weather(cls, url, prec, block, date):
+    def get_weather(cls, url, prec, block, date, source):
         print(url)
-        source = common.get_source(url)
         tree = html.fromstring(source)
         cnames_derived_astext = tree.xpath(u"//th[@scope='col']")
-        cnames_derived = []
+        cnames_derived = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        order = (u'時',u'現地',u'海面',u'降水量',u'気温',u'露点',u'蒸気圧',u'湿度',
+                 u'風速',u'風向',u'日照',u'全天',u'降雪',u'積雪',u'天気',u'雲量',u'視程')
         for word in cnames_derived_astext :
-            if u'気圧' in word :
-                cnames_derived.append([u'現地',u'海面'])
-            elif u'風向' in word :
-                cnames_derived.append([u'風速',u'風向'])
-            elif u'雪' in word :
-                cnames_derived.append([u'降雪',u'積雪'])
-            elif u'時' in word : continue
-            else : cnames_derived.appned(word)
+            word = word.text
+            for i in range(0,len(order)):
+                if order[i] in word:
+                    cnames_derived[i] = 1
+                    break
         for hour in range(1,24) :
+            count = 0
+            temp = tree.xpath(u"//td[@class='data_0_0']")
+            a = Weather(url)
             a.hour = hour
+            a.prec_id = prec
+            a.block_id = block
+            a.place_name = re.split(u'　',common.get_text_content(tree.xpath(u"//caption[@class='m']")))[0]
+            a.date = date
             for j in range(1,len(cnames_derived)) :
-                j_word = cnames_derived[j]
-                a = Weather(url)
-                a.prec_id = prec
-                a.block_id = block
-                a.place_name = common.get_text_content(tree.xpath(u"//caption[@class='m']"))
-                a.date = date
-                temp = common.get_text_content(tree.xpath(u"//td[@class='data_0_0']")[len(cnames_derived) * (hour - 1) + j])
-
-                if u'現地' in j_word : a.hPa_rand = temp
-                elif u'海面' in j_word : a.hPa_sea = temp
-                elif u'降水量' in j_word : a.rain = temp
-                elif u'気温' in j_word : a.temperature = temp
-                elif u'露点' in j_word : a.dew_point = temp
-                elif u'蒸気圧' in j_word : a.vapor_pressure = temp
-                elif u'湿度' in j_word : a.humidity = temp
-                elif u'風向' in j_word : a.wind_velocity = temp
-                elif u'風速' in j_word : a.wind_direction = temp
-                elif u'日照' in j_word : a.HoS = temp
-                elif u'全天' in j_word : a.solar_irradiance = temp
-                elif u'降雪' in j_word : a.snowfall = temp
-                elif u'積雪' in j_word : a.snow = temp
-                elif u'天気' in j_word : a.weather = temp
-                elif u'雲量' in j_word : a.DoC = temp
-                elif u'視程' in j_word : a.See = temp
+                if cnames_derived[j] == 0 : continue
+                val = temp[count].text
+                if val == '--'	: val = 0
+                if val == '///'	: val = 0
+                if val != val	: val = 0
+                if j == 1 : a.hPa_rand = val
+                elif j == 2 : a.hPa_sea = val
+                elif j == 3 : a.rain = val
+                elif j == 4 : a.temperature = val
+                elif j == 5 : a.dew_point = val
+                elif j == 6 : a.vapor_pressure = val
+                elif j == 7 : a.humidity = val
+                elif j == 8 : a.wind_velocity = val
+                elif j == 9 : a.wind_direction = val
+                elif j == 10 : a.HoS = val
+                elif j == 11 : a.solar_irradiance = val
+                elif j == 12 : a.snowfall = val
+                elif j == 13 : a.snow = val
+                elif j == 14 : a.weather = temp[count].attrib['alt']
+                elif j == 15 : a.DoC = val
+                elif j == 16 : a.See = val
+                count += 1
             add_to_db(a)
 
 def add_to_db(weather):
-    db.weather.remove({u'hour' : weather.hour},{u'block_id' : weather.prec_id},
-                      {u'place_name' : weather.place_name},{u'date' : weather.date})
+    db.weather.remove({u'place_name' : weather.place_name})
     post=json.dumps({u'prec_id' : weather.prec_id,
         u'block_id' : weather.block_id,
         u'place_name' : weather.place_name.encode('utf8'),
@@ -113,13 +116,13 @@ def add_to_db(weather):
         u'solar_irradiance' : weather.solar_irradiance,
         u'snowfall' : weather.snowfall,
         u'snow' : weather.snow,
-        u'weather' : weather.weather.enconde('utf8'),
+        u'weather' : weather.weather,
         u'DoC' : weather.DoC,
         u'See' : weather.See}, sort_keys=False)
     post = json.loads(post)
     db.weather.insert(post)
 
-def add_to_db(prec, block):
+def add_to_db_1st(prec, block):
     db.weather_place.remove({u'prec_id' : prec, u'block_id' : block})
     post=json.dumps({u'prec_id' : prec, u'block_id' : block}, sort_keys=False)
     post = json.loads(post)
@@ -144,7 +147,7 @@ def get_prec_block():
             url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             source = common.get_source(url)
             if len(source) < 6500 : continue
-            add_to_db(prec, block)
+            add_to_db_1st(prec, block)
     connect.disconnect()
 
 if __name__ == "__main__":
@@ -154,8 +157,8 @@ if __name__ == "__main__":
         get_prec_block()
         sys.exit()
     for pair in db.weather_place.find():
-        prec = pair['prec']
-        block = pair['block']
+        prec = pair['prec_id']
+        block = pair['block_id']
         date = start
         while date != end:
             if block < 10 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=000{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
@@ -163,7 +166,7 @@ if __name__ == "__main__":
             elif block < 1000 : url = u'{0}hourly_a1.php?prec_no={1}&block_no=0{2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             elif block > 40000 : url = u'{0}hourly_s1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
-            source = common.get_source(url)
+            source = common.get_source_content(url)
             if len(source) < 6500 : continue
-            Weather.get_weather(url, prec, block, date)
+            Weather.get_weather(url, prec, block, date, source)
     connect.disconnect()

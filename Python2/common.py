@@ -17,6 +17,11 @@ def get_archive_path_from_url(url):
     return data_folder + u'/'.join(arr[2:])
 
 
+def get_source_content(url):
+    html = requests.get(url)
+    html.encording = html.apparent_encoding
+    return html.content
+
 def get_source(url):
     html = requests.get(url)
     return html.text
