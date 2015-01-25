@@ -44,6 +44,10 @@ class Cosme(Base):
     def __init__(self, url):
         self.url = url
         self.reviews = []
+        self.ingredient = []
+        self.rating = []
+        self.skin = []
+        self.age = []
 
     @classmethod
     def from_item_pages(cls, url):
@@ -78,46 +82,84 @@ class Cosme(Base):
         a.date = re.split(u' ',a.date)[0]
         a.date  = (int(re.split(u'/',a.date)[0])-2000) * 365 + int(re.split(u'/',a.date)[1]) * 30 + int(re.split(u'/',a.date)[2])
         a.category = tree.xpath(u"//*/dl[@class='item-category clearfix']/dd/span/a")[2].text_content()
-
+        ingredient_list = tree.xpath(u"//*/dl[@class='ingredient clearfix']/dd/ul/li/a")
+        for ingre in ingredient_list :
+            print(ingre.text_content())
+            a.ingredient.append(ingre.text_content())
         page_number = 0
         urls = []
-        while True:
-            url = u"{0}{1}/reviews/p/{2}".format(base_url, a.id, page_number)
-            source = common.get_source(url)
-            new_urls = parse_search_page(url, source)
-            urls = urls + new_urls
-            page_number += 1
-            print(page_number)
-            if len(new_urls) < 1:
-                break
+        skin_types = ['普通','乾燥','脂成','混合','敏感','アトピー']
+        for skin in range(1,6) :
+            while True:
+                url = u"{0}{1}/reviews/sk/{2}/msf/1/saf/1/p/{3}".format(base_url, a.id, skin, page_number)
+                source = common.get_source(url)
+                new_urls = parse_search_page(url, source)
+                urls = urls + new_urls
+                page_number += 1
+                print(page_number)
+                if len(new_urls) < 1:
+                    break
 
-        if len(urls) == 0:
-            return
-        for url in urls:
-            try:
-                review_source = common.get_source(url)
-                review_tree = html.fromstring(review_source)
-                review_element = common.get_text_content(review_tree.xpath(u"//*/p[@class='read']"))
-                a.reviews.append(review_element)
-            except Exception, e:
-                if e.__str__() != u"not_found":
-                    log.debug(u"{0}, url = {1}".format(e, url))
-                break
+            if len(urls) == 0: continue
+            for url in urls:
+                try:
+                    review_source = common.get_source(url)
+                    review_tree = html.fromstring(review_source)
+                    review_element = common.get_text_content(review_tree.xpath(u"//*/p[@class='read']"))
+                    age_element = common.get_text_content(review_tree.xpath(u"//*/li[@class='first']"))
+                    a.reviews.append(review_element)
+                    a.age.append(age_element)
+                    a.skin.append(skin_types[skin - 1])
+                except Exception, e:
+                    if e.__str__() != u"not_found":
+                        log.debug(u"{0}, url = {1}".format(e, url))
+                    break
+        if len(a.reviews) == 0 : return
         add_to_db(a)
 
 def get_urls(id):
+    #For Getting Items within Three Years
     d = datetime.datetime.today()
     urls = []
-    for sort in range(0,1000):
-        top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/srt/3".format(id, sort)
+
+    # Sorted by Ranking
+    for sort in range(0,1):
+        top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/".format(id, sort)
         source = common.get_source(top_url)
         tree = html.fromstring(source)
-        item_date = re.sub(u'発売日：',u'',tree.xpath(u"//span[@class='sell']")[0].text_content())
-        item_date  = (int(re.split(u'/',item_date)[0])-2000) * 365 + int(re.split(u'/',item_date)[1]) * 30 + int(re.split(u'/',item_date)[2])
-        if item_date < (d.year - 2000 - 1) * 365 + d.month * 30 + d.day: break
         pages = tree.xpath(u"//div[@class='inner']/p[@class='item-head']/span[@class='item']/a")
         for page in pages:
             urls.append(page.attrib['href'])
+
+    # Sorted by Reviews
+    for sort in range(0,1):
+        top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/srt/1".format(id, sort)
+        source = common.get_source(top_url)
+        tree = html.fromstring(source)
+        pages = tree.xpath(u"//div[@class='inner']/p[@class='item-head']/span[@class='item']/a")
+        for page in pages:
+            urls.append(page.attrib['href'])
+
+    # Sorted by Recommendation
+    for sort in range(0,1):
+        top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/srt/2/".format(id, sort)
+        source = common.get_source(top_url)
+        tree = html.fromstring(source)
+        pages = tree.xpath(u"//div[@class='inner']/p[@class='item-head']/span[@class='item']/a")
+        for page in pages:
+            urls.append(page.attrib['href'])
+
+    # Sorted by Date
+    #for sort in range(0,1000):
+    #    top_url = u"http://www.cosme.net/item/item_id/{0}/products/page/{1}/srt/3".format(id, sort)
+    #    source = common.get_source(top_url)
+    #    tree = html.fromstring(source)
+    #    item_date = re.sub(u'発売日：',u'',tree.xpath(u"//span[@class='sell']")[0].text_content())
+    #    item_date  = (int(re.split(u'/',item_date)[0])-2000) * 365 + int(re.split(u'/',item_date)[1]) * 30 + int(re.split(u'/',item_date)[2])
+    #    if item_date < (d.year - 2000 - 1) * 365 + d.month * 30 + d.day: break
+    #    pages = tree.xpath(u"//div[@class='inner']/p[@class='item-head']/span[@class='item']/a")
+    #    for page in pages:
+    #        urls.append(page.attrib['href'])
     return(urls)
 
 def parse_search_page(url, source):
@@ -146,10 +188,16 @@ def add_to_db(cosme):
     db.cosme.insert(post)
 
 if __name__ == u"__main__":
-    ids = {u'1003',u'1071'}
+    ids = {u'1001',u'1039',u'1040',u'1041',
+           u'1002',u'1042',u'1043',u'1069',u'1070',u'1045',u'1044',
+           u'1003',u'1071',u'1072',
+           u'1006',u'1004',u'1005',u'1067',u'1073',
+           u'1037'
+    }
     urls = []
     for id in ids:
         urls = urls + get_urls(id)
-    for url in urls:
-        Cosme.from_item_pages(url)
+        urls = common.unique_fast(urls)
+        for url in urls:
+            Cosme.from_item_pages(url)
     connect.disconnect()

@@ -50,6 +50,11 @@ class Weather(Base):
 
     @classmethod
     def get_weather(cls, url, prec, block, date, source):
+        exists = db.weather.find.one({u'prec_id' : prec,
+                       u'block_id' : block,
+                       u'date' : date.strftime('%Y/%m/%d'),
+        })
+        if exists == exists : return True
         print(url)
         tree = html.fromstring(source)
         cnames_derived_astext = tree.xpath(u"//th[@scope='col']")
@@ -95,13 +100,13 @@ class Weather(Base):
                 elif j == 16 : a.See = val
                 count += 1
             add_to_db(a)
+        return False
 
 def add_to_db(weather):
-    db.weather.remove({u'place_name' : weather.place_name})
     post=json.dumps({u'prec_id' : weather.prec_id,
         u'block_id' : weather.block_id,
         u'place_name' : weather.place_name.encode('utf8'),
-        u'date' : weather.date,
+        u'date' : weather.date.strftime('%Y/%m/%d'),
         u'hour' : weather.hour,
         u'hPa_rand' : weather.hPa_rand,
         u'hPa_sea' : weather.hPa_sea,
@@ -151,8 +156,8 @@ def get_prec_block():
     connect.disconnect()
 
 if __name__ == "__main__":
-    start = datetime.date(2013,1,1)
-    end = datetime.date.today()
+    start = datetime.date.today() - datetime.timedelta(1)
+    end = datetime.date(2013,1,1)
     if False :
         get_prec_block()
         sys.exit()
@@ -168,5 +173,6 @@ if __name__ == "__main__":
             else : url = u'{0}hourly_a1.php?prec_no={1}&block_no={2}&year={3}&month={4}&day={5}&view='.format(base_url,prec,block,date.year,date.month,date.day)
             source = common.get_source_content(url)
             if len(source) < 6500 : continue
-            Weather.get_weather(url, prec, block, date, source)
+            if Weather.get_weather(url, prec, block, date, source) : break
+            date = date - datetime.timedelta(1)
     connect.disconnect()
